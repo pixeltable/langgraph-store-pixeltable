@@ -11,8 +11,6 @@ from datetime import datetime, timezone
 from typing import Any, Iterable
 
 import numpy as np
-import pixeltable as pxt
-
 from langgraph.store.base import (
     BaseStore,
     GetOp,
@@ -28,9 +26,11 @@ from langgraph.store.base import (
 )
 from langgraph.store.base.embed import ensure_embeddings, get_text_at_path, tokenize_path
 
+import pixeltable as pxt
+
 logger = logging.getLogger(__name__)
 
-_NS_SEP = '.'
+_NS_SEP = "."
 
 
 def _ns_to_str(ns: tuple[str, ...]) -> str:
@@ -75,7 +75,7 @@ class PixeltableStore(BaseStore):
     def __init__(
         self,
         *,
-        table_name: str = 'langgraph_store.items',
+        table_name: str = "langgraph_store.items",
         index: IndexConfig | None = None,
     ) -> None:
         self._table_name = table_name
@@ -86,32 +86,31 @@ class PixeltableStore(BaseStore):
 
         if self.index_config:
             self.index_config = self.index_config.copy()
-            self.embeddings = ensure_embeddings(self.index_config.get('embed'))
+            self.embeddings = ensure_embeddings(self.index_config.get("embed"))
             self._tokenized_fields = [
-                (p, tokenize_path(p)) if p != '$' else (p, p)
-                for p in (self.index_config.get('fields') or ['$'])
+                (p, tokenize_path(p)) if p != "$" else (p, p) for p in (self.index_config.get("fields") or ["$"])
             ]
 
     def setup(self) -> None:
         """Create the Pixeltable directory and table if they don't exist."""
-        parts = self._table_name.rsplit('.', 1)
+        parts = self._table_name.rsplit(".", 1)
         if len(parts) == 2:
             dir_name = parts[0]
-            pxt.create_dir(dir_name, if_exists='ignore')
+            pxt.create_dir(dir_name, if_exists="ignore")
 
         schema: dict[str, Any] = {
-            'namespace': pxt.String,
-            'key': pxt.String,
-            'value': pxt.Json,
-            'created_at': pxt.Timestamp,
-            'updated_at': pxt.Timestamp,
+            "namespace": pxt.String,
+            "key": pxt.String,
+            "value": pxt.Json,
+            "created_at": pxt.Timestamp,
+            "updated_at": pxt.Timestamp,
         }
         if self.index_config:
-            schema['search_text'] = pxt.String
-            dims = self.index_config['dims']
-            schema['embedding'] = pxt.Array[(dims,), pxt.Float]
+            schema["search_text"] = pxt.String
+            dims = self.index_config["dims"]
+            schema["embedding"] = pxt.Array[(dims,), pxt.Float]
 
-        self._local.table = pxt.create_table(self._table_name, schema, if_exists='ignore')
+        self._local.table = pxt.create_table(self._table_name, schema, if_exists="ignore")
 
     @property
     def table(self) -> pxt.Table:
@@ -120,15 +119,13 @@ class PixeltableStore(BaseStore):
         Returns a thread-local handle so the store is safe to use from
         LangGraph's threaded tool execution.
         """
-        t = getattr(self._local, 'table', None)
+        t = getattr(self._local, "table", None)
         if t is None:
             try:
                 t = pxt.get_table(self._table_name)
                 self._local.table = t
             except Exception:
-                raise RuntimeError(
-                    f'Table {self._table_name!r} not found. Call store.setup() first.'
-                )
+                raise RuntimeError(f"Table {self._table_name!r} not found. Call store.setup() first.")
         return t
 
     # ------------------------------------------------------------------
@@ -152,7 +149,7 @@ class PixeltableStore(BaseStore):
             elif isinstance(op, ListNamespacesOp):
                 results.append(self._handle_list_namespaces(op))
             else:
-                raise ValueError(f'Unknown operation type: {type(op)}')
+                raise ValueError(f"Unknown operation type: {type(op)}")
 
         if put_ops:
             self._handle_put_batch(put_ops)
@@ -184,11 +181,11 @@ class PixeltableStore(BaseStore):
             return None
         row = rows[0]
         return Item(
-            value=row['value'],
-            key=row['key'],
-            namespace=_str_to_ns(row['namespace']),
-            created_at=row['created_at'],
-            updated_at=row['updated_at'],
+            value=row["value"],
+            key=row["key"],
+            namespace=_str_to_ns(row["namespace"]),
+            created_at=row["created_at"],
+            updated_at=row["updated_at"],
         )
 
     def _handle_put_batch(self, put_ops: dict[tuple[str, str], PutOp]) -> None:
@@ -205,7 +202,7 @@ class PixeltableStore(BaseStore):
                         if texts:
                             if len(texts) > 1:
                                 for ti, text in enumerate(texts):
-                                    texts_to_embed[text].append((op.namespace, op.key, f'{path}.{ti}'))
+                                    texts_to_embed[text].append((op.namespace, op.key, f"{path}.{ti}"))
                             else:
                                 texts_to_embed[texts[0]].append((op.namespace, op.key, path))
 
@@ -234,11 +231,11 @@ class PixeltableStore(BaseStore):
                 continue
 
             row: dict[str, Any] = {
-                'namespace': ns_str,
-                'key': key,
-                'value': op.value,
-                'created_at': now,
-                'updated_at': now,
+                "namespace": ns_str,
+                "key": key,
+                "value": op.value,
+                "created_at": now,
+                "updated_at": now,
             }
 
             if self.index_config:
@@ -247,14 +244,14 @@ class PixeltableStore(BaseStore):
                     paths = self._tokenized_fields if op.index is None else [(ix, tokenize_path(ix)) for ix in op.index]
                     for _path, field in paths:
                         search_parts.extend(get_text_at_path(op.value, field))
-                row['search_text'] = ' '.join(search_parts) if search_parts else ''
+                row["search_text"] = " ".join(search_parts) if search_parts else ""
 
                 vecs = key_embeddings.get((ns, key))
                 if vecs:
                     avg = np.mean(vecs, axis=0).tolist()
-                    row['embedding'] = avg
+                    row["embedding"] = avg
                 else:
-                    row['embedding'] = [0.0] * self.index_config['dims']
+                    row["embedding"] = [0.0] * self.index_config["dims"]
 
             t.insert([row])
 
@@ -289,7 +286,7 @@ class PixeltableStore(BaseStore):
             query_vec = self.embeddings.embed_query(op.query)
             scored: list[tuple[dict[str, Any], float]] = []
             for row in rows:
-                emb = row.get('embedding')
+                emb = row.get("embedding")
                 if emb is not None and any(v != 0.0 for v in emb):
                     score = _cosine_similarity(query_vec, emb)
                 else:
@@ -300,15 +297,15 @@ class PixeltableStore(BaseStore):
             scored = [(row, 0.0) for row in rows]
 
         # Apply offset and limit
-        page = scored[op.offset: op.offset + op.limit]
+        page = scored[op.offset : op.offset + op.limit]
 
         return [
             SearchItem(
-                namespace=_str_to_ns(row['namespace']),
-                key=row['key'],
-                value=row['value'],
-                created_at=row['created_at'],
-                updated_at=row['updated_at'],
+                namespace=_str_to_ns(row["namespace"]),
+                key=row["key"],
+                value=row["value"],
+                created_at=row["created_at"],
+                updated_at=row["updated_at"],
                 score=score,
             )
             for row, score in page
@@ -317,7 +314,7 @@ class PixeltableStore(BaseStore):
     def _handle_list_namespaces(self, op: ListNamespacesOp) -> list[tuple[str, ...]]:
         t = self.table
         rows = t.select(t.namespace).collect()
-        all_ns = {_str_to_ns(row['namespace']) for row in rows}
+        all_ns = {_str_to_ns(row["namespace"]) for row in rows}
 
         filtered = all_ns
         if op.match_conditions:
@@ -327,7 +324,7 @@ class PixeltableStore(BaseStore):
             filtered = {ns[: op.max_depth] for ns in filtered}
 
         result = sorted(filtered)
-        return result[op.offset: op.offset + op.limit]
+        return result[op.offset : op.offset + op.limit]
 
     # ------------------------------------------------------------------
     # Filter helpers
@@ -338,23 +335,23 @@ class PixeltableStore(BaseStore):
         """Translate LangGraph filter dict to a Pixeltable where expression."""
         col = t.value[field_key]
 
-        if isinstance(filter_value, dict) and any(k.startswith('$') for k in filter_value):
+        if isinstance(filter_value, dict) and any(k.startswith("$") for k in filter_value):
             conditions = []
             for op_key, op_val in filter_value.items():
-                if op_key == '$eq':
+                if op_key == "$eq":
                     conditions.append(col == op_val)
-                elif op_key == '$ne':
+                elif op_key == "$ne":
                     conditions.append(col != op_val)
-                elif op_key == '$gt':
+                elif op_key == "$gt":
                     conditions.append(col > op_val)
-                elif op_key == '$gte':
+                elif op_key == "$gte":
                     conditions.append(col >= op_val)
-                elif op_key == '$lt':
+                elif op_key == "$lt":
                     conditions.append(col < op_val)
-                elif op_key == '$lte':
+                elif op_key == "$lte":
                     conditions.append(col <= op_val)
                 else:
-                    raise ValueError(f'Unsupported filter operator: {op_key}')
+                    raise ValueError(f"Unsupported filter operator: {op_key}")
             result = conditions[0]
             for c in conditions[1:]:
                 result = result & c
@@ -364,8 +361,8 @@ class PixeltableStore(BaseStore):
 
     @staticmethod
     def _match(condition: MatchCondition, ns: tuple[str, ...]) -> bool:
-        if condition.match_type == 'prefix':
+        if condition.match_type == "prefix":
             return ns[: len(condition.path)] == condition.path
-        elif condition.match_type == 'suffix':
-            return ns[-len(condition.path):] == condition.path if len(ns) >= len(condition.path) else False
+        elif condition.match_type == "suffix":
+            return ns[-len(condition.path) :] == condition.path if len(ns) >= len(condition.path) else False
         return True
