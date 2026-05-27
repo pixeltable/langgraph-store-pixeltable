@@ -6,9 +6,10 @@ import asyncio
 import logging
 import threading
 from collections import defaultdict
+from collections.abc import Iterable
 from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime, timezone
-from typing import Any, Iterable
+from typing import Any
 
 import numpy as np
 from langgraph.store.base import (
@@ -124,8 +125,8 @@ class PixeltableStore(BaseStore):
             try:
                 t = pxt.get_table(self._table_name)
                 self._local.table = t
-            except Exception:
-                raise RuntimeError(f"Table {self._table_name!r} not found. Call store.setup() first.")
+            except Exception as exc:
+                raise RuntimeError(f"Table {self._table_name!r} not found. Call store.setup() first.") from exc
         return t
 
     # ------------------------------------------------------------------
@@ -210,7 +211,7 @@ class PixeltableStore(BaseStore):
         if texts_to_embed:
             unique_texts = list(texts_to_embed.keys())
             vectors = self.embeddings.embed_documents(unique_texts)
-            embedded = dict(zip(unique_texts, vectors))
+            embedded = dict(zip(unique_texts, vectors, strict=True))
 
         # Group embeddings by (namespace, key) -> aggregate vector (average)
         key_embeddings: dict[tuple[tuple[str, ...], str], list[list[float]]] = defaultdict(list)
