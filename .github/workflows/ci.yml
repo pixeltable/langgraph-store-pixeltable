@@ -31,4 +31,4 @@ jobs:
         with:
           python-version: ${{ matrix.python-version }}
       - run: pip install -e ".[dev]"
-      - run: pytest tests/test_store.py -v
+      - run: pytest tests/ -v
