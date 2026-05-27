@@ -15,4 +15,4 @@ Usage:
 from langgraph.store.pixeltable.store import PixeltableStore
 
 __all__ = ["PixeltableStore"]
-__version__ = "0.1.0"
+__version__ = "0.1.1"
