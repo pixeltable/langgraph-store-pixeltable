@@ -1,0 +1,57 @@
+[build-system]
+requires = ["setuptools>=68.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "langgraph-store-pixeltable"
+version = "0.1.0"
+description = "LangGraph BaseStore backend for Pixeltable — persistent, versioned, multimodal agent memory."
+readme = "README.md"
+license = "Apache-2.0"
+license-files = ["LICENSE"]
+requires-python = ">=3.10"
+authors = [
+    { name = "Pixeltable", email = "contact@pixeltable.com" },
+]
+keywords = ["langgraph", "pixeltable", "store", "memory", "agent", "multimodal", "embeddings"]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Developers",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: Scientific/Engineering :: Artificial Intelligence",
+]
+dependencies = [
+    "langgraph-checkpoint>=4.0",
+    "pixeltable>=0.2.28",
+    "numpy",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.0",
+    "ruff>=0.4",
+    "sentence-transformers",
+]
+
+[project.urls]
+Homepage = "https://github.com/pixeltable/langgraph-store-pixeltable"
+Repository = "https://github.com/pixeltable/langgraph-store-pixeltable"
+Documentation = "https://docs.pixeltable.com/"
+Issues = "https://github.com/pixeltable/langgraph-store-pixeltable/issues"
+Discord = "https://discord.gg/QPyqFYx2UN"
+
+[tool.setuptools.packages.find]
+include = ["langgraph*"]
+
+[tool.ruff]
+line-length = 120
+target-version = "py310"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "W"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
